@@ -25,6 +25,8 @@ yankee_list = ['united states of america', 'us', 'usa', 'america', 'united state
 job_name = input('What kind of job are you looking for?')
 job_location = input('Where would you like your job to be located?')
 
+time.sleep(3)
+
 while True:
     WebDriverWait(driver, 3).until(ec.visibility_of_element_located((By.ID, 'job-search-bar-keywords')))
     job_search_bar = driver.find_element(By.ID, 'job-search-bar-keywords')
@@ -41,7 +43,7 @@ while True:
     job_search_bar.send_keys(Keys.ENTER)
 
     try:
-        if driver.find_element(By.XPATH, '//input[contains(@value, "United States")]').is_displayed() and job_location not in yankee_list:        
+        if driver.find_element(By.XPATH,'//input[contains(@value, "United States")]').is_displayed() and job_location not in yankee_list:
             print("Hmmm, it seems like we couldn't find a country called " + job_location + ". Please check the spelling and try again:")
         elif len(driver.find_elements(By.XPATH, job_not_found_message_xpath)) > 0:
             print("Hmmm, it seems like we couldn't find a match for " + job_name + ". Please check the spelling and try again:")
@@ -50,10 +52,12 @@ while True:
             break
     except NoSuchElementException:
         print('Something went wrong')
-    
+
     if not job_found:
         job_name = input('What kind of job are you looking for?')
     job_location = input('Where would you like your job to be located?')
+
+print('The loop has been broken')
 
 time.sleep(5)
 driver.quit()
