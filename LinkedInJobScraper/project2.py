@@ -55,5 +55,19 @@ while True:
         job_name = input('What kind of job are you looking for?')
     job_location = input('Where would you like your job to be located?')
 
-time.sleep(5)
+print('The loop has been broken')
+
+job_card_class = 'base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card'
+
+job_names = []
+job_companies = []
+
+response = requests.get(driver.current_url)
+soup = BeautifulSoup(response.text, 'html.parser')
+job_cards = soup.find_all('div', attrs={'class' : job_card_class})
+
+#for i in range(3):
+print(job_cards)
+
+time.sleep(50000)
 driver.quit()
