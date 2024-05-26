@@ -23,10 +23,13 @@ job_found = True
 
 yankee_list = ['united states of america', 'us', 'usa', 'america', 'united states']
 
-job_name = input('What kind of job are you looking for?')
-job_location = input('Where would you like your job to be located?')
+#job_name = input('What kind of job are you looking for?')
+#job_location = input('Where would you like your job to be located?')
 
-time.sleep(3)
+job_name = 'fullstack'
+job_location = 'usa'
+
+#time.sleep(3)
 
 while True:
     WebDriverWait(driver, 3).until(ec.visibility_of_element_located((By.ID, 'job-search-bar-keywords')))
@@ -57,16 +60,21 @@ while True:
 
 print('The loop has been broken')
 
-job_card_class = 'base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card'
+response = requests.get(driver.current_url)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+job_names_html = soup.find_all('h3', attrs={'class' : 'base-search-card__title'})
+job_companies_html = soup.find_all('a', attrs={'class' : 'hidden-nested-link'})
 
 job_names = []
 job_companies = []
 
-response = requests.get(driver.current_url)
-soup = BeautifulSoup(response.text, 'html.parser')
-job_cards = soup.find_all()
 for i in range(3):
-    pass
+    job_names.append(job_names_html[i].text.strip())
+    job_companies.append(job_companies_html[i].text.strip())
 
-time.sleep(50000)
+print(job_names)
+print(job_companies)
+
+time.sleep(5)
 driver.quit()
