@@ -4,8 +4,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
-from selenium.common.exceptions import NoSuchElementException
 import time
+from bs4 import BeautifulSoup
+import requests
 
 url = 'https://www.linkedin.com/jobs/search?position=1&pageNum=0'
 
@@ -25,6 +26,8 @@ yankee_list = ['united states of america', 'us', 'usa', 'america', 'united state
 job_name = input('What kind of job are you looking for?')
 job_location = input('Where would you like your job to be located?')
 
+time.sleep(3)
+
 while True:
     WebDriverWait(driver, 3).until(ec.visibility_of_element_located((By.ID, 'job-search-bar-keywords')))
     job_search_bar = driver.find_element(By.ID, 'job-search-bar-keywords')
@@ -40,20 +43,31 @@ while True:
     job_search_bar.send_keys(job_name)
     job_search_bar.send_keys(Keys.ENTER)
 
-    try:
-        if driver.find_element(By.XPATH, '//input[contains(@value, "United States")]').is_displayed() and job_location not in yankee_list:        
-            print("Hmmm, it seems like we couldn't find a country called " + job_location + ". Please check the spelling and try again:")
-        elif len(driver.find_elements(By.XPATH, job_not_found_message_xpath)) > 0:
-            print("Hmmm, it seems like we couldn't find a match for " + job_name + ". Please check the spelling and try again:")
-            job_found = False
-        else:
-            break
-    except NoSuchElementException:
-        print('Something went wrong')
-    
+    if len(driver.find_elements(By.XPATH, job_not_found_message_xpath)) > 0:
+        print("Hmmm, it seems like we couldn't find a match for " + job_name + " in " + job_location + ". Please check the spelling and try again:")
+        job_found = False
+    elif driver.find_element(By.XPATH,'//input[contains(@value, "United States")]').is_displayed() and job_location.lower() not in yankee_list:
+        print("Hmmm, it seems like we couldn't find a country called " + job_location + ". Please check the spelling and try again:")
+    else:
+        break
+
     if not job_found:
         job_name = input('What kind of job are you looking for?')
     job_location = input('Where would you like your job to be located?')
 
-time.sleep(5)
+print('The loop has been broken')
+
+job_card_class = 'base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card'
+
+job_names = []
+job_companies = []
+
+response = requests.get(driver.current_url)
+soup = BeautifulSoup(response.text, 'html.parser')
+job_cards = soup.find_all('div', attrs={'class' : job_card_class})
+
+#for i in range(3):
+print(job_cards)
+
+time.sleep(50000)
 driver.quit()
