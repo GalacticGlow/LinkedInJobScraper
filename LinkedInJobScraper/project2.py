@@ -29,8 +29,6 @@ yankee_list = ['united states of america', 'us', 'usa', 'america', 'united state
 job_name = 'fullstack'
 job_location = 'usa'
 
-#time.sleep(3)
-
 while True:
     WebDriverWait(driver, 3).until(ec.visibility_of_element_located((By.ID, 'job-search-bar-keywords')))
     job_search_bar = driver.find_element(By.ID, 'job-search-bar-keywords')
@@ -66,12 +64,17 @@ soup = BeautifulSoup(response.text, 'html.parser')
 job_names_html = soup.find_all('h3', attrs={'class' : 'base-search-card__title'})
 job_companies_html = soup.find_all('a', attrs={'class' : 'hidden-nested-link'})
 job_locations_html = soup.find_all('span', attrs={'class' : 'job-search-card__location'})
+job_links_html = soup.find_all('a', attrs={'class' : 'base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]'})
 
 job_names = []
 job_companies = []
 job_locations = []
+job_applicants = []
 
-job_search_bar_cur_val = soup.find('input', attrs={'aria-controls' : 'job-search-bar-location-typeahead-list'})['value']
+WebDriverWait(driver, 5).until(ec.visibility_of_element_located((By.CLASS_NAME, 'dismissable-input__input font-sans text-md text-color-text bg-color-transparent flex items-center flex-1 focus:outline-none placeholder:text-color-text-secondary')))
+job_search_bar_cur_val = soup.find('input', attrs={'class' : 'dismissable-input__input font-sans text-md text-color-text bg-color-transparent flex items-center flex-1 focus:outline-none placeholder:text-color-text-secondary'})['value']
+
+job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card')]")
 
 for i in range(10):
     job_names.append(job_names_html[i].text.strip())
@@ -80,10 +83,17 @@ for i in range(10):
         job_locations.append('-')
     else:
         job_locations.append(job_locations_html[i].text.strip())
-
+    
+    print(job_links_html[i])
+    #WebDriverWait(driver, 3).until(ec.visibility_of_element_located((By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet')))
+    #job_applicants.append(soup.find('span', attrs={'class' : 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet'}).text.split(' ')[0])
+    #print(driver.find_element(By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet').text)
+    #driver.back()
+    
 print(job_names)
 print(job_companies)
 print(job_locations)
+print(job_applicants)
 
 time.sleep(5)
 driver.quit() 
