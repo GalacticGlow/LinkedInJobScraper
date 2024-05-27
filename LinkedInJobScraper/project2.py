@@ -65,16 +65,25 @@ soup = BeautifulSoup(response.text, 'html.parser')
 
 job_names_html = soup.find_all('h3', attrs={'class' : 'base-search-card__title'})
 job_companies_html = soup.find_all('a', attrs={'class' : 'hidden-nested-link'})
+job_locations_html = soup.find_all('span', attrs={'class' : 'job-search-card__location'})
 
 job_names = []
 job_companies = []
+job_locations = []
 
-for i in range(3):
+job_search_bar_cur_val = soup.find('input', attrs={'aria-controls' : 'job-search-bar-location-typeahead-list'})['value']
+
+for i in range(10):
     job_names.append(job_names_html[i].text.strip())
     job_companies.append(job_companies_html[i].text.strip())
+    if job_locations_html[i].text.strip() == job_search_bar_cur_val:
+        job_locations.append('-')
+    else:
+        job_locations.append(job_locations_html[i].text.strip())
 
 print(job_names)
 print(job_companies)
+print(job_locations)
 
 time.sleep(5)
-driver.quit()
+driver.quit() 
