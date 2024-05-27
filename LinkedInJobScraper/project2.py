@@ -90,6 +90,7 @@ for i in range(10):
     else:
         job_locations.append(job_locations_html[i].text.strip())
     
+    time.sleep(2)
     driver.get(job_links_html[i]['href'])
     #WebDriverWait(driver, 3).until(ec.visibility_of_element_located((By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet')))
     #job_applicants.append(soup.find('span', attrs={'class' : 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet'}).text.split(' ')[0])
