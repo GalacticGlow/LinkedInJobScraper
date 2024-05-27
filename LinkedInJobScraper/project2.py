@@ -71,8 +71,14 @@ job_companies = []
 job_locations = []
 job_applicants = []
 
-WebDriverWait(driver, 5).until(ec.visibility_of_element_located((By.CLASS_NAME, 'dismissable-input__input font-sans text-md text-color-text bg-color-transparent flex items-center flex-1 focus:outline-none placeholder:text-color-text-secondary')))
-job_search_bar_cur_val = soup.find('input', attrs={'class' : 'dismissable-input__input font-sans text-md text-color-text bg-color-transparent flex items-center flex-1 focus:outline-none placeholder:text-color-text-secondary'})['value']
+# Wait for the visibility of the input element using Selenium
+job_search_bar_location = WebDriverWait(driver, 5).until(
+    ec.visibility_of_element_located((By.ID, 'job-search-bar-location'))
+)
+
+# Extract the current value of the input element using Selenium
+job_search_bar_cur_val = job_search_bar_location.get_attribute('value')
+
 
 job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card')]")
 
