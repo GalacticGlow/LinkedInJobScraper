@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.common.exceptions import NoSuchElementException
 import time
 from bs4 import BeautifulSoup
 import requests
@@ -66,19 +67,22 @@ job_companies_html = soup.find_all('a', attrs={'class' : 'hidden-nested-link'})
 job_locations_html = soup.find_all('span', attrs={'class' : 'job-search-card__location'})
 job_links_html = soup.find_all('a', attrs={'class' : 'base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]'})
 
+print(len(job_names_html))
+print(len(job_companies_html))
+print(len(job_locations_html))
+print(len(job_links_html))
+
+
 job_names = []
 job_companies = []
 job_locations = []
 job_applicants = []
 
-# Wait for the visibility of the input element using Selenium
 job_search_bar_location = WebDriverWait(driver, 5).until(
     ec.visibility_of_element_located((By.ID, 'job-search-bar-location'))
 )
 
-# Extract the current value of the input element using Selenium
 job_search_bar_cur_val = job_search_bar_location.get_attribute('value')
-
 
 job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card')]")
 
@@ -90,12 +94,24 @@ for i in range(10):
     else:
         job_locations.append(job_locations_html[i].text.strip())
     
-    time.sleep(2)
+    '''
     driver.get(job_links_html[i]['href'])
-    #WebDriverWait(driver, 3).until(ec.visibility_of_element_located((By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet')))
-    #job_applicants.append(soup.find('span', attrs={'class' : 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet'}).text.split(' ')[0])
-    #print(driver.find_element(By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet').text)
-    #driver.back()
+
+    try:
+        WebDriverWait(driver, 5).until(
+            ec.visibility_of_element_located((By.XPATH, "//body[contains(@dir, 'ltr')]"))
+        )
+        if driver.find_element(By.XPATH, "//body[contains(@dir, 'ltr')]").is_displayed():
+            job_applicants.append('-')
+            print('-')
+            continue
+    except NoSuchElementException:
+        print('the test has been passed')
+        WebDriverWait(driver, 50).until(ec.visibility_of_element_located((By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet')))
+        applicants_element = driver.find_element(By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet')
+        job_applicants.append(applicants_element.text.split(' ')[0])
+        driver.back()
+'''
     
 print(job_names)
 print(job_companies)
