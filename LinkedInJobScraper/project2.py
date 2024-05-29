@@ -62,10 +62,14 @@ print('The loop has been broken')
 response = requests.get(driver.current_url)
 soup = BeautifulSoup(response.text, 'html.parser')
 
+time.sleep(1)
 job_names_html = soup.find_all('h3', attrs={'class' : 'base-search-card__title'})
+time.sleep(1)
 job_companies_html = soup.find_all('a', attrs={'class' : 'hidden-nested-link'})
+time.sleep(1)
 job_locations_html = soup.find_all('span', attrs={'class' : 'job-search-card__location'})
-job_links_html = soup.find_all('a', attrs={'class' : 'base-card__full-link absolute top-0 right-0 bottom-0 left-0 p-0 z-[2]'})
+time.sleep(1)
+job_links_html = soup.find_all('a', attrs={'class' : 'base-card__full-link'})
 
 print(len(job_names_html))
 print(len(job_companies_html))
@@ -84,35 +88,41 @@ job_search_bar_location = WebDriverWait(driver, 5).until(
 
 job_search_bar_cur_val = job_search_bar_location.get_attribute('value')
 
-job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card')]")
+job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative')]")
 
 for i in range(10):
-    job_names.append(job_names_html[i].text.strip())
+    time.sleep(10)
+    try:
+        job_names.append(job_names_html[i].text.strip())
+    except IndexError:
+        print('List doing shit again')
     job_companies.append(job_companies_html[i].text.strip())
     if job_locations_html[i].text.strip() == job_search_bar_cur_val:
         job_locations.append('-')
     else:
         job_locations.append(job_locations_html[i].text.strip())
     
-    '''
-    driver.get(job_links_html[i]['href'])
+    url_to_visit = job_links_html[i]['href']
+    driver.get(url_to_visit)
 
-    try:
-        WebDriverWait(driver, 5).until(
-            ec.visibility_of_element_located((By.XPATH, "//body[contains(@dir, 'ltr')]"))
-        )
-        if driver.find_element(By.XPATH, "//body[contains(@dir, 'ltr')]").is_displayed():
-            job_applicants.append('-')
-            print('-')
-            continue
-    except NoSuchElementException:
-        print('the test has been passed')
-        WebDriverWait(driver, 50).until(ec.visibility_of_element_located((By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet')))
-        applicants_element = driver.find_element(By.CLASS_NAME, 'num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet')
-        job_applicants.append(applicants_element.text.split(' ')[0])
-        driver.back()
-'''
-    
+    response = requests.get(url_to_visit)
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    applicants_version_1 = soup.find('span', attrs={'class' : 'num-applicants__caption'})
+    applicants_version_2 = soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
+
+    if applicants_version_1:
+        job_applicants.append(applicants_version_1.text.strip())
+        print(applicants_version_1.text.strip())
+        print('ver 1')
+    elif applicants_version_2:
+        job_applicants.append(applicants_version_2.text.strip())
+        print(applicants_version_2.text.strip())
+        print('ver 2')
+    else:
+        job_applicants.append('-')
+        print('-')
+
 print(job_names)
 print(job_companies)
 print(job_locations)
