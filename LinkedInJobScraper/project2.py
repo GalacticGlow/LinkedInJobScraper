@@ -8,6 +8,7 @@ from selenium.common.exceptions import NoSuchElementException
 import time
 from bs4 import BeautifulSoup
 import requests
+import csv
 
 url = 'https://www.linkedin.com/jobs/search?position=1&pageNum=0'
 
@@ -91,7 +92,7 @@ job_search_bar_cur_val = job_search_bar_location.get_attribute('value')
 job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative')]")
 
 for i in range(10):
-    time.sleep(10)
+    time.sleep(1)
     try:
         job_names.append(job_names_html[i].text.strip())
     except IndexError:
@@ -108,25 +109,34 @@ for i in range(10):
     response = requests.get(url_to_visit)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    applicants_version_1 = soup.find('span', attrs={'class' : 'num-applicants__caption'})
-    applicants_version_2 = soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
+    while True:
+        applicants_version_1 = soup.find('span', attrs={'class' : 'num-applicants__caption'})
+        applicants_version_2 = soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
 
-    if applicants_version_1:
-        job_applicants.append(applicants_version_1.text.strip())
-        print(applicants_version_1.text.strip())
-        print('ver 1')
-    elif applicants_version_2:
-        job_applicants.append(applicants_version_2.text.strip())
-        print(applicants_version_2.text.strip())
-        print('ver 2')
-    else:
-        job_applicants.append('-')
-        print('-')
+        if applicants_version_1:
+            job_applicants.append(applicants_version_1.text.strip())
+            print(applicants_version_1.text.strip())
+            print('ver 1')
+            break
+        elif applicants_version_2:
+            job_applicants.append(applicants_version_2.text.strip())
+            print(applicants_version_2.text.strip())
+            print('ver 2')
+            break
+        else:
+            driver.back()
+            response = requests.get(url_to_visit)
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+for i in range(len(job_applicants)):
+    job_applicants[i] = job_applicants[i].replace('applicants', '')
 
 print(job_names)
 print(job_companies)
 print(job_locations)
 print(job_applicants)
+
+
 
 time.sleep(5)
 driver.quit() 
