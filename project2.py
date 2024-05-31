@@ -22,20 +22,24 @@ driver.get(url)
 job_not_found_message_xpath = '//h1[contains(@class, "core-section-container__main-title main-title")]'
 location_not_found_xpath = '//h2[contains(@class, "authwall-sign-in-form__header-title")]'
 job_found = True
+location_found = True
 
 yankee_list = ['united states of america', 'us', 'usa', 'america', 'united states']
 
 driver.minimize_window()
 
 job_name = input('What kind of job are you looking for?')
-job_location = input('Where would you like your job to be located?')
+job_location = input('Where would you prefer your job to be located?')
 
 driver.maximize_window()
 
-while True:
+search_query_proper = False
+
+while not search_query_proper:
     driver.maximize_window()
     time.sleep(1)
     job_found = True
+    location_found = True
     WebDriverWait(driver, 30).until(ec.visibility_of_element_located((By.ID, 'job-search-bar-keywords')))
     job_search_bar = driver.find_element(By.ID, 'job-search-bar-keywords')
 
@@ -55,22 +59,26 @@ while True:
         job_found = False
     elif driver.find_element(By.ID,'job-search-bar-location').get_attribute('value') == 'United States' and job_location.lower() not in yankee_list:
         print("Hmmm, it seems like we couldn't find a country called " + job_location + ". Please check the spelling and try again:")
+        location_found = False
     else:
-        break
+        search_query_proper = True
     
     driver.minimize_window()
 
     if not job_found:
         job_name = input('What kind of job are you looking for?')
-    job_location = input('Where would you like your job to be located?')
+    if not location_found:
+        job_location = input('Where would you like your job to be located?')
 
 driver.minimize_window()
 
 num_jobs = input('How many search results do you need?')
-while True:
+is_a_proper_number = False
+while not is_a_proper_number:
     try:
         num_jobs = int(num_jobs)
-        break
+        if num_jobs > 0:
+            is_a_proper_number = True
     except ValueError:
         print('Enter a number please:')
     num_jobs = input('How many search results do you need?')
@@ -97,6 +105,8 @@ job_search_bar_cur_val = job_search_bar_location.get_attribute('value')
 
 job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative')]")
 
+page_loaded = False
+
 for i in range(num_jobs):
     job_names.append(job_names_html[i].text.strip())
     job_companies.append(job_companies_html[i].text.strip())
@@ -111,24 +121,21 @@ for i in range(num_jobs):
     response = requests.get(url_to_visit)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    while True:
+    while not page_loaded:
         applicants_version_1 = soup.find('span', attrs={'class' : 'num-applicants__caption'})
         applicants_version_2 = soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
 
         if applicants_version_1:
             job_applicants.append(applicants_version_1.text.strip())
-            print(applicants_version_1.text.strip())
-            print('ver 1')
             break
         elif applicants_version_2:
             job_applicants.append(applicants_version_2.text.strip())
-            print(applicants_version_2.text.strip())
-            print('ver 2')
             break
         else:
             driver.back()
             response = requests.get(url_to_visit)
             soup = BeautifulSoup(response.text, 'html.parser')
+
     salary_html = soup.find('div', attrs={'class' : 'salary compensation__salary'})
     if salary_html:
         job_salaries.append(salary_html.text.strip())
@@ -141,11 +148,12 @@ for i in range(len(job_applicants)):
 driver.minimize_window()
 
 chosen_dir = input('Enter the path to the folder where you would like your file saved:')
+dir_exists = False
 
-while True:
+while not dir_exists:
     try:
         os.chdir(chosen_dir)
-        break
+        dir_exists = True
     except OSError:
         print("The folder you chose doesn't exist or is incorrectly typed. Check if you typed the path correctly and try again:")
     chosen_dir = input('Enter the path to the folder where you would like your file saved:')
