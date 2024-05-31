@@ -22,6 +22,7 @@ driver.get(url)
 job_not_found_message_xpath = '//h1[contains(@class, "core-section-container__main-title main-title")]'
 location_not_found_xpath = '//h2[contains(@class, "authwall-sign-in-form__header-title")]'
 job_found = True
+location_found = True
 
 yankee_list = ['united states of america', 'us', 'usa', 'america', 'united states']
 
@@ -55,6 +56,7 @@ while True:
         job_found = False
     elif driver.find_element(By.ID,'job-search-bar-location').get_attribute('value') == 'United States' and job_location.lower() not in yankee_list:
         print("Hmmm, it seems like we couldn't find a country called " + job_location + ". Please check the spelling and try again:")
+        location_found = False
     else:
         break
     
@@ -62,7 +64,8 @@ while True:
 
     if not job_found:
         job_name = input('What kind of job are you looking for?')
-    job_location = input('Where would you like your job to be located?')
+    if not location_found:
+        job_location = input('Where would you like your job to be located?')
 
 driver.minimize_window()
 
