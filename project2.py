@@ -6,10 +6,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup
-import time
 import requests
 import os
 import csv
+import pandas as pd
 
 url = 'https://www.linkedin.com/jobs/search?position=1&pageNum=0'
 
@@ -99,16 +99,14 @@ job_search_bar_cur_val = job_search_bar_location.get_attribute('value')
 
 job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card relative')]")
 
-page_loaded = False
-
 actual_job_count = driver.find_element(By.CLASS_NAME, 'results-context-header__job-count').text
 try:
     actual_job_count = int(actual_job_count)
 except ValueError:
     actual_job_count = int(actual_job_count.replace('+', ''))
 
-for i in range(num_jobs):
-    if i+1 <= actual_job_count:
+for i, job_link in enumerate(job_links_html):
+    if i + 1 <= actual_job_count:
         job_names.append(job_names_html[i].text.strip())
         job_companies.append(job_companies_html[i].text.strip())
         if job_locations_html[i].text.strip() == job_search_bar_cur_val:
@@ -116,38 +114,31 @@ for i in range(num_jobs):
         else:
             job_locations.append(job_locations_html[i].text.strip())
         
-        url_to_visit = job_links_html[i]['href']
-        driver.get(url_to_visit)
+        url_to_visit = job_link['href']
+        job_response = requests.get(url_to_visit)
+        job_soup = BeautifulSoup(job_response.text, 'html.parser')
 
-        response = requests.get(url_to_visit)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        applicants_version_1 = job_soup.find('span', attrs={'class' : 'num-applicants__caption'})
+        applicants_version_2 = job_soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
 
-        while not page_loaded:
-            applicants_version_1 = soup.find('span', attrs={'class' : 'num-applicants__caption'})
-            applicants_version_2 = soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
+        if applicants_version_1:
+            job_applicants.append(applicants_version_1.text.strip())
+        elif applicants_version_2:
+            job_applicants.append(applicants_version_2.text.strip())
+        else:
+            job_applicants.append('-')
 
-            if applicants_version_1:
-                job_applicants.append(applicants_version_1.text.strip())
-                break
-            elif applicants_version_2:
-                job_applicants.append(applicants_version_2.text.strip())
-                break
-            else:
-                driver.back()
-                response = requests.get(url_to_visit)
-                soup = BeautifulSoup(response.text, 'html.parser')
-
-        salary_html = soup.find('div', attrs={'class' : 'salary compensation__salary'})
+        salary_html = job_soup.find('div', attrs={'class' : 'salary compensation__salary'})
         if salary_html:
             job_salaries.append(salary_html.text.strip())
         else:
             job_salaries.append('-')
 
         if (i+1)%20 == 0:
-            for i in range(5):
+            for _ in range(5):
                 actions.send_keys(Keys.ARROW_DOWN).perform()
     else:
-        print('You asked for ' + str(num_jobs) + ' jobs, however we unfortunately could only find ' + str(i) + '.')
+        print(f'You asked for {num_jobs} jobs, however we unfortunately could only find {i}.')
         break
 
 for i in range(len(job_applicants)):
@@ -167,15 +158,16 @@ while not dir_exists:
 
 numeration_column_list = [i+1 for i in range(len(job_names))]
 
-file = open('Found LinkedIn jobs.csv', 'w', newline='', encoding='utf-8-sig')
-writer = csv.writer(file)
-writer.writerow(['№', 'Full position name', 'Company', 'Location', 'Number of applicants', 'Salary'])
+df = pd.DataFrame({
+    '№': range(1, len(job_names) + 1),
+    'Full position name': job_names,
+    'Company': job_companies,
+    'Location': job_locations,
+    'Number of applicants': job_applicants,
+    'Salary': job_salaries
+})
 
-for column, name, company, location, applicant, salary in zip(numeration_column_list, job_names, job_companies, job_locations, job_applicants, job_salaries):
-    writer.writerow([column, name, company, location, applicant, salary])
-file.close()
-
+df.to_csv('Found LinkedIn jobs.csv', index=False, encoding='utf-8-sig')
 print('File successfully saved!!')
 
-time.sleep(5)
 driver.quit()
