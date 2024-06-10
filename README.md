@@ -1,0 +1,2 @@
+This program is a LinkedIn job finder/cataloger. It goes to LinkedIn's job search platform, types in the job name and location which the user inputs, 
+then takes a certain number of the jobs which appear (the user specifies the number), takes certain pieces of information (to get some of which the program visits the job's page), and puts all this information in a csv file and saves it as an Excel file to a folder, the path of which the user specifies.
