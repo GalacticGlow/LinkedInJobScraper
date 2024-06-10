@@ -4,6 +4,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.common.action_chains import ActionChains
 from bs4 import BeautifulSoup
 import time
 import requests
@@ -14,15 +15,16 @@ url = 'https://www.linkedin.com/jobs/search?position=1&pageNum=0'
 
 options = webdriver.ChromeOptions()
 options.add_argument('start-maximized')
+options.add_argument('--log-level=1')
 service = Service()
 driver = webdriver.Chrome(service=service, options=options)
+
+actions = ActionChains(driver)
 
 driver.get(url)
 
 job_not_found_message_xpath = '//h1[contains(@class, "core-section-container__main-title main-title")]'
 location_not_found_xpath = '//h2[contains(@class, "authwall-sign-in-form__header-title")]'
-job_found = True
-location_found = True
 
 yankee_list = ['united states of america', 'us', 'usa', 'america', 'united states']
 
@@ -37,9 +39,6 @@ search_query_proper = False
 
 while not search_query_proper:
     driver.maximize_window()
-    time.sleep(1)
-    job_found = True
-    location_found = True
     WebDriverWait(driver, 30).until(ec.visibility_of_element_located((By.ID, 'job-search-bar-keywords')))
     job_search_bar = driver.find_element(By.ID, 'job-search-bar-keywords')
 
@@ -48,40 +47,35 @@ while not search_query_proper:
 
     job_location_field.click()
     job_location_field.clear()
+    job_search_bar.clear()
+
     job_location_field.send_keys(job_location)
 
-    job_search_bar.clear()
     job_search_bar.send_keys(job_name)
     job_search_bar.send_keys(Keys.ENTER)
 
-    if len(driver.find_elements(By.XPATH, job_not_found_message_xpath)) > 0:
-        print("Hmmm, it seems like we couldn't find a match for " + job_name + " in " + job_location + ". Please check the spelling and try again:")
-        job_found = False
-    elif driver.find_element(By.ID,'job-search-bar-location').get_attribute('value') == 'United States' and job_location.lower() not in yankee_list:
-        print("Hmmm, it seems like we couldn't find a country called " + job_location + ". Please check the spelling and try again:")
-        location_found = False
+    if (len(driver.find_elements(By.XPATH, job_not_found_message_xpath)) > 0 or 
+        (driver.find_element(By.ID,'job-search-bar-location').get_attribute('value') == 'United States' and job_location.lower() not in yankee_list)):
+        print('Either the job name or location are incorrect. Please check your spelling and try again:')
     else:
         search_query_proper = True
-    
-    driver.minimize_window()
 
-    if not job_found:
+    if not search_query_proper:    
+        driver.minimize_window()
         job_name = input('What kind of job are you looking for?')
-    if not location_found:
         job_location = input('Where would you like your job to be located?')
 
 driver.minimize_window()
 
-num_jobs = input('How many search results do you need?')
 is_a_proper_number = False
 while not is_a_proper_number:
+    num_jobs = input('How many search results do you need?')
     try:
         num_jobs = int(num_jobs)
         if num_jobs > 0:
             is_a_proper_number = True
     except ValueError:
         print('Enter a number please:')
-    num_jobs = input('How many search results do you need?')
 
 response = requests.get(driver.current_url)
 soup = BeautifulSoup(response.text, 'html.parser')
@@ -98,7 +92,7 @@ job_applicants = []
 job_salaries = []
 
 job_search_bar_location = WebDriverWait(driver, 5).until(
-    ec.visibility_of_element_located((By.ID, 'job-search-bar-location'))
+    ec.presence_of_element_located((By.ID, 'job-search-bar-location'))
 )
 
 job_search_bar_cur_val = job_search_bar_location.get_attribute('value')
@@ -107,56 +101,69 @@ job_links = driver.find_elements(By.XPATH, "//div[contains(@class, 'base-card re
 
 page_loaded = False
 
+actual_job_count = driver.find_element(By.CLASS_NAME, 'results-context-header__job-count').text
+try:
+    actual_job_count = int(actual_job_count)
+except ValueError:
+    actual_job_count = int(actual_job_count.replace('+', ''))
+
 for i in range(num_jobs):
-    job_names.append(job_names_html[i].text.strip())
-    job_companies.append(job_companies_html[i].text.strip())
-    if job_locations_html[i].text.strip() == job_search_bar_cur_val:
-        job_locations.append('-')
-    else:
-        job_locations.append(job_locations_html[i].text.strip())
-    
-    url_to_visit = job_links_html[i]['href']
-    driver.get(url_to_visit)
-
-    response = requests.get(url_to_visit)
-    soup = BeautifulSoup(response.text, 'html.parser')
-
-    while not page_loaded:
-        applicants_version_1 = soup.find('span', attrs={'class' : 'num-applicants__caption'})
-        applicants_version_2 = soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
-
-        if applicants_version_1:
-            job_applicants.append(applicants_version_1.text.strip())
-            break
-        elif applicants_version_2:
-            job_applicants.append(applicants_version_2.text.strip())
-            break
+    if i+1 <= actual_job_count:
+        job_names.append(job_names_html[i].text.strip())
+        job_companies.append(job_companies_html[i].text.strip())
+        if job_locations_html[i].text.strip() == job_search_bar_cur_val:
+            job_locations.append('-')
         else:
-            driver.back()
-            response = requests.get(url_to_visit)
-            soup = BeautifulSoup(response.text, 'html.parser')
+            job_locations.append(job_locations_html[i].text.strip())
+        
+        url_to_visit = job_links_html[i]['href']
+        driver.get(url_to_visit)
 
-    salary_html = soup.find('div', attrs={'class' : 'salary compensation__salary'})
-    if salary_html:
-        job_salaries.append(salary_html.text.strip())
+        response = requests.get(url_to_visit)
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        while not page_loaded:
+            applicants_version_1 = soup.find('span', attrs={'class' : 'num-applicants__caption'})
+            applicants_version_2 = soup.find('figcaption', attrs={'class' : 'num-applicants__caption'})
+
+            if applicants_version_1:
+                job_applicants.append(applicants_version_1.text.strip())
+                break
+            elif applicants_version_2:
+                job_applicants.append(applicants_version_2.text.strip())
+                break
+            else:
+                driver.back()
+                response = requests.get(url_to_visit)
+                soup = BeautifulSoup(response.text, 'html.parser')
+
+        salary_html = soup.find('div', attrs={'class' : 'salary compensation__salary'})
+        if salary_html:
+            job_salaries.append(salary_html.text.strip())
+        else:
+            job_salaries.append('-')
+
+        if (i+1)%20 == 0:
+            for i in range(5):
+                actions.send_keys(Keys.ARROW_DOWN).perform()
     else:
-        job_salaries.append('-')
+        print('You asked for ' + str(num_jobs) + ' jobs, however we unfortunately could only find ' + str(i) + '.')
+        break
 
 for i in range(len(job_applicants)):
     job_applicants[i] = job_applicants[i].replace('applicants', '')
 
 driver.minimize_window()
 
-chosen_dir = input('Enter the path to the folder where you would like your file saved:')
 dir_exists = False
 
 while not dir_exists:
+    chosen_dir = input('Enter the path to the folder where you would like your file saved:')
     try:
         os.chdir(chosen_dir)
         dir_exists = True
     except OSError:
         print("The folder you chose doesn't exist or is incorrectly typed. Check if you typed the path correctly and try again:")
-    chosen_dir = input('Enter the path to the folder where you would like your file saved:')
 
 numeration_column_list = [i+1 for i in range(len(job_names))]
 
